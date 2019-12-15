@@ -1,6 +1,6 @@
 # Fedora RPM Package For transgui Application
 
-`transgui` is A feature rich cross platform Transmission BitTorrent
+`transgui` is a feature rich cross platform Transmission BitTorrent
 client. Faster and has more functionality than the built-in web GUI.
 See its [home page](https://github.com/transmission-remote-gui/transgui)
 for details.
