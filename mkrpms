@@ -28,7 +28,9 @@ else
 	dnf -y install wget lazarus fpc openssl-devel
 
 	#  Get the source file
-	wget -O "${HOME}/rpmbuild/SOURCES/${NAME}-${VERSION}.tar.gz" "https://github.com/transmission-remote-gui/transgui/archive/v5.18.0.tar.gz"
+	SOURCE0=$(sed -n 's/^Source0:[[:space:]]*//p' "$SPECFILE")
+        SOURCE0=$(echo "$SOURCE0" | sed "s/%{name}/${NAME}/;s/%{version}/${VERSION}/")
+	wget -O "${HOME}/rpmbuild/SOURCES/${SOURCE0}" "https://github.com/transmission-remote-gui/transgui/archive/v${VERSION}.tar.gz"
 
 	#  Build the packages.  Try twice, in case of an Access Exception, which happens occasionally
 	if ! rpmbuild -ba "$SPECFILE"; then
