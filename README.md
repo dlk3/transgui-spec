@@ -10,6 +10,7 @@ an installation RPM file for `transgui` for my Fedora desktop.
 
 I have created a Fedora COPR repository to support the installation of
 the RPMs I created.  To install transgui from this reposditory do:
-
-  $ sudo dnf copr enable dlk/transgui
-  $ sudo dnf install transgui
+```
+$ sudo dnf copr enable dlk/transgui
+$ sudo dnf install transgui
+```
