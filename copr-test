@@ -1,0 +1,59 @@
+#!/usr/bin/env sh
+
+#  This Source Code Form is subject to the terms of the Mozilla Public
+#  License, v. 2.0. If a copy of the MPL was not distributed with this
+#  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+set -e
+
+if [ $(cat /etc/hostname) == "fang.localdomain" ]; then
+
+	podman run --interactive --name=rpmbuild --rm --tty --volume=${HOME}:${HOME} docker.io/library/fedora:32 "$(realpath "$0")"
+	
+else
+
+	#  Make the container look like a COPR environment
+	dnf groupinstall -y "Development Tools" "RPM Development Tools"
+	dnf install -y rpm-build
+	dnf upgrade -y
+	mkdir -p ${HOME}/rpmbuild/BUILD
+	mkdir -p ${HOME}/rpmbuild/BUILDROOT
+	mkdir -p ${HOME}/rpmbuild/RPMS
+	mkdir -p ${HOME}/rpmbuild/SOURCES
+	mkdir -p ${HOME}/rpmbuild/SPECS
+	mkdir -p ${HOME}/rpmbuild/SRPMS
+	mkdir /tmp/copr-test
+	cd /tmp/copr-test
+
+	#  COPR: Installing packages required by the custom script
+	dnf install -y wget git
+	
+	#  COPR: The custom script that gets/creates the sources and the spec file
+	git clone https://github.com/dlk3/transgui-spec.git
+	mv transgui-spec/transgui.spec .
+	VERSION=$(sed -n 's/^Version:[[:space:]]*//p' 'transgui.spec')
+	wget -O transgui-${VERSION}.tar.gz https://github.com/transmission-remote-gui/transgui/archive/v${VERSION}.tar.gz
+
+	#  Parse the package name, version, release, sources and architecture
+	#  out of the spec file
+	SPECFILE="transgui.spec"
+	NAME=$(sed -n 's/^Name:[[:space:]]*//p' "$SPECFILE")
+	SOURCE0=$(sed -n 's/^Source0:[[:space:]]*//p' "$SPECFILE")
+	SOURCE0=$(echo "$SOURCE0" | sed "s/%{name}/${NAME}/;s/%{version}/${VERSION}/")
+	RELEASE=$(sed -n 's/^Release:[[:space:]]*//;s/%{?dist}//p' "$SPECFILE")
+	ARCH=$(sed -n 's/^BuildArch:[[:space:]]*//p' "$SPECFILE")
+
+	#  Install the BuildRequires packages listed in the spec file
+	dnf install -y lazarus fpc openssl-devel
+	
+	#  Move the source files into place in the ${HOME}/rpmbuild tree
+	mv /tmp/copr-test/${SPECFILE} ${HOME}/rpmbuild/SPECS/
+	mv /tmp/copr-test/${NAME}-${VERSION}.tar.gz ${HOME}/rpmbuild/SOURCES/
+
+	#  Build the package ...
+	rpmbuild -ba "${HOME}/rpmbuild/SPECS/$SPECFILE"
+
+	#  Test the package installation
+	dnf install -y ${HOME}/rpmbuild/RPMS/$ARCH/${NAME}-${VERSION}-${RELEASE}.*.${ARCH}.rpm
+	
+fi
